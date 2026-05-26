@@ -1,0 +1,75 @@
+# Environment variables (NEVER commit these!)
+.env
+.env.local
+.env.*.local
+
+# Dependencies
+node_modules/
+.pnp
+.pnp.js
+
+# Visual Studio / .NET
+.vs/
+bin/
+obj/
+*.user
+*.userosscache
+*.sln.docstates
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# Testing
+coverage/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+lerna-debug.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+*.local
+
+# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea
+.DS_Store
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?
+
+# TypeScript
+*.tsbuildinfo
+.cache/
+
+# Replit
+.replit
+replit.nix
+.config/
+.upm/
+
+# OS files
+Thumbs.db
+
+# Temporary files
+*.tmp
+*.temp
+.tmp/
+.temp/
+
+# TestSprite temporary files (optional - you can commit test results if you want)
+testsprite_tests/tmp/
+testsprite_tests/.testsprite/
+
+# Session files
+cookies.txt
+
