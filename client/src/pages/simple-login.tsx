@@ -420,7 +420,7 @@ export default function SimpleLogin() {
                         <Briefcase className={`h-10 w-10 ${theme.logoIcon} relative z-10`} />
                       ) : (
                         <img
-                          src="https://cdn.discordapp.com/attachments/1421112166429229116/1422228063739052122/adicheats.png?ex=690812da&is=6906c15a&hm=78923786399efed663e4841cffbd22c707405bfc30c80f29fd4aab1e82916332&"
+                          src="/Adicheatslogo.png"
                           alt="ADI Cheats Logo"
                           className="h-full w-full object-cover relative z-10"
                         />
