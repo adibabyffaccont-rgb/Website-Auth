@@ -72,7 +72,7 @@ module.exports = {
         .setFooter({ text: 'AdiCheats Auth System' })
         .setTimestamp();
 
-      return interaction.reply({ embeds: [embed], ephemeral: true });
+      return interaction.reply({ embeds: [embed], ephemeral: false });
     },
   },
 
@@ -83,7 +83,7 @@ module.exports = {
       .setDescription('View all blacklist entries'),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       try {
         const entries = await api.getBlacklist();
@@ -103,7 +103,7 @@ module.exports = {
         opt.setName('app-id').setDescription('Filter by application ID (optional)').setRequired(false)),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       const appId = interaction.options.getInteger('app-id');
       try {

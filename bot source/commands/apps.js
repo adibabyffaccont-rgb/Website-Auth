@@ -25,7 +25,7 @@ module.exports = {
       .setDescription('List all your applications'),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       try {
         const apps = await api.getApplications();
@@ -44,7 +44,7 @@ module.exports = {
       .addIntegerOption(opt => opt.setName('id').setDescription('Application ID').setRequired(true)),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       const appId = interaction.options.getInteger('id');
       try {
@@ -70,7 +70,7 @@ module.exports = {
       .addBooleanOption(opt => opt.setName('hwid-lock').setDescription('Enable HWID lock').setRequired(false)),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       const data = {
         name: interaction.options.getString('name'),
@@ -102,7 +102,7 @@ module.exports = {
       .addIntegerOption(opt => opt.setName('id').setDescription('Application ID').setRequired(true)),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       const appId = interaction.options.getInteger('id');
       try {
@@ -126,7 +126,7 @@ module.exports = {
       .addBooleanOption(opt => opt.setName('active').setDescription('true = online, false = offline').setRequired(true)),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       const appId = interaction.options.getInteger('id');
       const isActive = interaction.options.getBoolean('active');
@@ -150,7 +150,7 @@ module.exports = {
       .addIntegerOption(opt => opt.setName('id').setDescription('Application ID').setRequired(true)),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
       const appId = interaction.options.getInteger('id');
       try {

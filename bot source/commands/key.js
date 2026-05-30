@@ -114,7 +114,7 @@ module.exports = {
         return interaction.showModal(modal);
       }
 
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
 
       const appId = await getDefaultAppId(interaction);

@@ -66,7 +66,7 @@ module.exports = {
       const sub = interaction.options.getSubcommand();
 
       // Make sure it's deferred as we removed the modal
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
 
       const appId = await getDefaultAppId(interaction);

@@ -70,7 +70,7 @@ module.exports = {
       const sub = interaction.options.getSubcommand();
 
       // /license create - handled inline now, no modal
-      await interaction.deferReply({ ephemeral: sub !== 'info' });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
 
       const appId = await getDefaultAppId(interaction);

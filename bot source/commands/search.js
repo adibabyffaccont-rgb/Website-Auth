@@ -32,7 +32,7 @@ module.exports = {
           opt.setName('query').setDescription('License key or partial key').setRequired(true))),
 
     async execute(interaction) {
-      await interaction.deferReply({ ephemeral: true });
+      await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
 
       const sub = interaction.options.getSubcommand();

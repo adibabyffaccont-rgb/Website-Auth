@@ -190,6 +190,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // ==================== BUTTON HANDLER ====================
   if (interaction.isButton()) {
+    if (interaction.message.interaction && interaction.user.id !== interaction.message.interaction.user.id) {
+      return interaction.reply({ content: 'You are not allowed to interact with this component.', ephemeral: true });
+    }
+
     const parts = interaction.customId.split(':');
     const action = parts[0];
 
@@ -339,6 +343,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
   // ==================== SELECT MENU HANDLER ====================
   if (interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isRoleSelectMenu()) {
+    if (interaction.message.interaction && interaction.user.id !== interaction.message.interaction.user.id) {
+      return interaction.reply({ content: 'You are not allowed to interact with this component.', ephemeral: true });
+    }
+
     const [action, guildIdFromMenu] = interaction.customId.split(':');
 
     if (action === 'setup_app_select') {
