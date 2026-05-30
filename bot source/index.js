@@ -25,6 +25,29 @@ const guildConfig = require('./lib/guildConfig');
 const notifications = require('./lib/notifications');
 const E           = require('./emojis');
 
+// Helper to parse expiry date or relative duration
+function parseExpiry(input) {
+  if (!input || input.trim() === '') return null;
+  const str = input.toLowerCase().trim();
+  const match = str.match(/^(\d+)\s*(d|day|days|w|week|weeks|m|month|months|y|year|years)$/);
+  
+  if (match) {
+    const value = parseInt(match[1]);
+    const unit = match[2];
+    const date = new Date();
+    
+    if (unit.startsWith('d')) date.setDate(date.getDate() + value);
+    else if (unit.startsWith('w')) date.setDate(date.getDate() + (value * 7));
+    else if (unit.startsWith('m')) date.setMonth(date.getMonth() + value);
+    else if (unit.startsWith('y')) date.setFullYear(date.getFullYear() + value);
+    
+    return date.toISOString();
+  }
+  
+  const d = new Date(input);
+  return isNaN(d.getTime()) ? null : d.toISOString();
+}
+
 // ==================== VALIDATION ====================
 if (!process.env.DISCORD_TOKEN) {
   console.error('❌ DISCORD_TOKEN is not set in .env file.');
@@ -164,7 +187,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
         const username = interaction.fields.getTextInputValue('username');
         const password = interaction.fields.getTextInputValue('password');
         const expiresRaw = interaction.fields.getTextInputValue('expires') || null;
-        const expiresAt = expiresRaw ? new Date(expiresRaw).toISOString() : null;
+        const expiresAt = parseExpiry(expiresRaw);
 
         const newUser = await api.createAppUser(config.defaultAppId, {
           username, password, expiresAt, isActive: true,

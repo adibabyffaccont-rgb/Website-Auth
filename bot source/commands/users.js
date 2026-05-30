@@ -83,7 +83,7 @@ module.exports = {
           new ActionRowBuilder().addComponents(
             new TextInputBuilder()
               .setCustomId('expires')
-              .setLabel('Expiry Date (YYYY-MM-DD or leave blank)')
+              .setLabel('Expiry (e.g. 1d, 3 days, 1w, 1m, YYYY-MM-DD)')
               .setStyle(TextInputStyle.Short)
               .setRequired(false),
           ),
