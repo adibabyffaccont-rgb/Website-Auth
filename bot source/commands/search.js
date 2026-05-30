@@ -20,22 +20,24 @@ module.exports = {
     data: new SlashCommandBuilder()
       .setName('search')
       .setDescription('Search for users or keys')
-      .addSubcommand(sub => sub
-        .setName('username')
-        .setDescription('Search for a user by username')
-        .addStringOption(opt =>
-          opt.setName('query').setDescription('Username to search for').setRequired(true)))
-      .addSubcommand(sub => sub
-        .setName('key')
-        .setDescription('Search for a license key')
-        .addStringOption(opt =>
-          opt.setName('query').setDescription('License key or partial key').setRequired(true))),
+      .addStringOption(opt =>
+        opt.setName('type')
+           .setDescription('What are you searching for?')
+           .setRequired(true)
+           .addChoices(
+             { name: 'User', value: 'user' },
+             { name: 'License', value: 'license' }
+           ))
+      .addStringOption(opt =>
+        opt.setName('query')
+           .setDescription('Username, ID, or License Key')
+           .setRequired(true)),
 
     async execute(interaction) {
       await interaction.deferReply({ ephemeral: false });
       if (!await requireLinked(interaction)) return;
 
-      const sub = interaction.options.getSubcommand();
+      const type = interaction.options.getString('type');
       const query = interaction.options.getString('query').toLowerCase();
 
       const config = await guildConfig.getConfig(interaction.guildId);
@@ -48,10 +50,10 @@ module.exports = {
       }
 
       try {
-        if (sub === 'username') {
+        if (type === 'user') {
           const users = await api.getAppUsers(appId);
           const app = await api.getApplication(appId);
-          const matches = users.filter(u => u.username.toLowerCase().includes(query));
+          const matches = users.filter(u => u.username.toLowerCase().includes(query) || String(u.id) === query);
 
           if (matches.length === 0) {
             return interaction.editReply({
@@ -89,7 +91,7 @@ module.exports = {
           return interaction.editReply({ embeds: [embed] });
         }
 
-        if (sub === 'key') {
+        if (type === 'license') {
           const licenses = await api.getLicenses(appId);
           const app = await api.getApplication(appId);
           const matches = licenses.filter(l =>
