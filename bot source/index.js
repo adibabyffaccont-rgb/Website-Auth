@@ -381,41 +381,28 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.deferUpdate();
       const appId = parseInt(interaction.values[0]);
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { defaultAppId: appId });
-      const app = await api.getApplication(appId).catch(() => ({ name: `App #${appId}` }));
-      return interaction.followUp({
-        embeds: [successEmbed('Default App Set', `Default application is now **${app.name}** (\`${appId}\`).`)],
-        ephemeral: true,
-      });
+      return;
     }
 
     if (action === 'setup_logs_select') {
       await interaction.deferUpdate();
       const channelId = interaction.values[0];
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { logsChannelId: channelId });
-      return interaction.followUp({
-        embeds: [successEmbed('Logs Channel Set', `Bot logs will now be sent to <#${channelId}>.`)],
-        ephemeral: true,
-      });
+      return;
     }
 
     if (action === 'setup_notify_select') {
       await interaction.deferUpdate();
       const channelId = interaction.values[0];
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { notifyChannelId: channelId });
-      return interaction.followUp({
-        embeds: [successEmbed('Notifications Channel Set', `Event notifications will be sent to <#${channelId}>.`)],
-        ephemeral: true,
-      });
+      return;
     }
 
     if (action === 'setup_reseller_select') {
       await interaction.deferUpdate();
       const roleId = interaction.values[0];
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { resellerRoleId: roleId });
-      return interaction.followUp({
-        embeds: [successEmbed('Reseller Role Set', `Members with <@&${roleId}> can access reseller commands.`)],
-        ephemeral: true,
-      });
+      return;
     }
 
     return;
