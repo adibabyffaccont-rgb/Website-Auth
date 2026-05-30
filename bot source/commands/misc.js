@@ -54,20 +54,10 @@ module.exports = {
             inline: false,
           },
           {
-            name: `${E.KEY} Key Generation`,
-            value: '`/key generate` — Quick key gen\n`/key info` — Key details\n`/key redeem` — Redeem a key\n`/key delete` — Delete key',
-            inline: false,
-          },
-          {
             name: `${E.INFO} Search`,
-            value: '`/search username` — Find a user\n`/search key` — Find a key',
+            value: '`/search` — Find a user or license key',
             inline: false,
-          },
-          {
-            name: `${E.ACTIVITY} Reseller`,
-            value: '`/reseller stats` — Sales stats\n`/reseller sales` — Recent sales\n`/reseller users` — Your users',
-            inline: false,
-          },
+          }
         )
         .setFooter({ text: 'AdiCheats Auth System' })
         .setTimestamp();
