@@ -1,10 +1,12 @@
 import { useState, useEffect } from "react";
 import { useToast } from "@/hooks/use-toast";
+import { useAuth } from "@/hooks/useAuth";
 import { Link2, Hash, Shield, Bot, CheckCircle, XCircle, Loader2, Copy, Check, ExternalLink } from "lucide-react";
 
 type Stage = "form" | "loading" | "success" | "error";
 
 export default function DiscordConnect() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
   const [discordUserId, setDiscordUserId] = useState("");
   const [verificationCode, setVerificationCode] = useState("");
   const [stage, setStage] = useState<Stage>("form");
@@ -128,6 +130,61 @@ export default function DiscordConnect() {
     setErrorMessage("");
     setVerificationCode("");
   };
+
+  if (authLoading) {
+    return (
+      <div className={`min-h-screen relative flex items-center justify-center overflow-hidden ${theme.bgGradient}`}>
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className={`absolute -top-40 -right-40 h-96 w-96 animate-pulse ${theme.blob1} blur-[120px] rounded-full`} />
+          <div className={`absolute -bottom-40 -left-40 h-96 w-96 animate-pulse ${theme.blob2} blur-[120px] rounded-full animation-delay-2000`} />
+        </div>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:72px_72px]" />
+        <div className="flex flex-col items-center justify-center space-y-4 relative z-10">
+          <Loader2 className="h-12 w-12 text-indigo-400 animate-spin" />
+          <p className="text-gray-400">Loading auth state...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) {
+    return (
+      <div className={`min-h-screen relative flex items-center justify-center overflow-hidden ${theme.bgGradient}`}>
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className={`absolute -top-40 -right-40 h-96 w-96 animate-pulse ${theme.blob1} blur-[120px] rounded-full`} />
+          <div className={`absolute -bottom-40 -left-40 h-96 w-96 animate-pulse ${theme.blob2} blur-[120px] rounded-full animation-delay-2000`} />
+        </div>
+        <div className="pointer-events-none absolute inset-0 bg-[linear-gradient(rgba(255,255,255,0.02)_1px,transparent_1px),linear-gradient(90deg,rgba(255,255,255,0.02)_1px,transparent_1px)] bg-[size:72px_72px]" />
+
+        <div className="relative group max-w-md w-full mx-4" onMouseMove={handleMouseMove}>
+          <div className={`absolute -inset-1 ${theme.cardGlow} rounded-3xl blur-2xl opacity-60`} />
+          <div className={`relative bg-black/95 backdrop-blur-2xl rounded-3xl border ${theme.cardBorder} shadow-2xl overflow-hidden p-8 sm:p-10`} style={{ boxShadow: theme.cardShadow }}>
+            <div className={`absolute top-0 left-0 right-0 h-px ${theme.topLine} opacity-75`} />
+            
+            <div className="text-center space-y-6">
+              <div className={`relative mx-auto w-20 h-20 rounded-full ring-4 ${theme.ring} ring-offset-4 ring-offset-black flex items-center justify-center bg-black/50`}>
+                <Shield className="h-10 w-10 text-red-500 relative z-10" />
+              </div>
+              <div className="space-y-2">
+                <h3 className="text-2xl font-bold text-white">Authentication Required</h3>
+                <p className="text-gray-400 text-sm leading-relaxed">
+                  You must be logged in to link your Discord account.
+                </p>
+              </div>
+              
+              <a
+                href="/login"
+                className={`relative w-full h-12 ${theme.buttonBg} text-white font-semibold rounded-xl overflow-hidden flex items-center justify-center gap-2 transition-all duration-300 ${theme.buttonShadow} hover:scale-[1.02] active:scale-[0.98]`}
+              >
+                Sign In to Your Account
+              </a>
+            </div>
+            <div className={`absolute bottom-0 left-0 right-0 h-px ${theme.topLine} opacity-75`} />
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className={`min-h-screen relative flex items-center justify-center overflow-hidden ${theme.bgGradient}`}>
