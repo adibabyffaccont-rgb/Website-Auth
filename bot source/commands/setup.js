@@ -21,6 +21,59 @@ async function requireAdmin(interaction) {
   return true;
 }
 
+// Build all 4 setup select menus in one message
+async function buildSetupComponents(guildId, apps) {
+  const rows = [];
+
+  // Row 1: Default Application (StringSelect populated with real apps from API)
+  if (apps && apps.length > 0) {
+    const appOptions = apps.slice(0, 25).map(a => ({
+      label: a.name.substring(0, 100),
+      value: String(a.id),
+      description: a.description ? a.description.substring(0, 50) : `App ID: ${a.id}`,
+    }));
+    rows.push(new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`setup_app_select:${guildId}`)
+        .setPlaceholder('Default Application — select one')
+        .addOptions(appOptions),
+    ));
+  } else {
+    rows.push(new ActionRowBuilder().addComponents(
+      new StringSelectMenuBuilder()
+        .setCustomId(`setup_app_select:${guildId}`)
+        .setPlaceholder('No applications found — create one on the website first')
+        .setDisabled(true)
+        .addOptions([{ label: 'No apps available', value: 'none' }]),
+    ));
+  }
+
+  // Row 2: Logs Channel (shows all text channels on the server)
+  rows.push(new ActionRowBuilder().addComponents(
+    new ChannelSelectMenuBuilder()
+      .setCustomId(`setup_logs_select:${guildId}`)
+      .setPlaceholder('Logs Channel — where bot action logs are sent')
+      .addChannelTypes(ChannelType.GuildText),
+  ));
+
+  // Row 3: Notifications Channel (shows all text channels on the server)
+  rows.push(new ActionRowBuilder().addComponents(
+    new ChannelSelectMenuBuilder()
+      .setCustomId(`setup_notify_select:${guildId}`)
+      .setPlaceholder('Notifications Channel — where automated alerts appear')
+      .addChannelTypes(ChannelType.GuildText),
+  ));
+
+  // Row 4: Reseller Role (shows all roles on the server)
+  rows.push(new ActionRowBuilder().addComponents(
+    new RoleSelectMenuBuilder()
+      .setCustomId(`setup_reseller_select:${guildId}`)
+      .setPlaceholder('Reseller Role — grants reseller panel access'),
+  ));
+
+  return rows;
+}
+
 module.exports = {
 
   // ===================== /setup =====================
@@ -32,29 +85,18 @@ module.exports = {
 
     async execute(interaction) {
       if (!await requireAdmin(interaction)) return;
+      await interaction.deferReply({ ephemeral: true });
+
+      let apps = [];
+      try {
+        await api.ensureSystemSession();
+        apps = await api.getApplications();
+      } catch { /* will show disabled dropdown if unavailable */ }
 
       const embed = setupWelcomeEmbed();
+      const rows = await buildSetupComponents(interaction.guildId, apps);
 
-      const row = new ActionRowBuilder().addComponents(
-        new ButtonBuilder()
-          .setCustomId(`setup_app:${interaction.guildId}`)
-          .setLabel('Set Default App')
-          .setStyle(ButtonStyle.Primary),
-        new ButtonBuilder()
-          .setCustomId(`setup_logs:${interaction.guildId}`)
-          .setLabel('Set Logs Channel')
-          .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-          .setCustomId(`setup_notify:${interaction.guildId}`)
-          .setLabel('Set Notify Channel')
-          .setStyle(ButtonStyle.Secondary),
-        new ButtonBuilder()
-          .setCustomId(`setup_reseller:${interaction.guildId}`)
-          .setLabel('Set Reseller Role')
-          .setStyle(ButtonStyle.Secondary),
-      );
-
-      return interaction.reply({ embeds: [embed], components: [row], ephemeral: true });
+      return interaction.editReply({ embeds: [embed], components: rows });
     },
   },
 
@@ -78,23 +120,9 @@ module.exports = {
         } catch { /* ignore */ }
 
         const embed = settingsEmbed(config, apps);
+        const rows = await buildSetupComponents(interaction.guildId, apps);
 
-        const row = new ActionRowBuilder().addComponents(
-          new ButtonBuilder()
-            .setCustomId(`setup_app:${interaction.guildId}`)
-            .setLabel('Change Default App')
-            .setStyle(ButtonStyle.Primary),
-          new ButtonBuilder()
-            .setCustomId(`setup_logs:${interaction.guildId}`)
-            .setLabel('Change Logs Channel')
-            .setStyle(ButtonStyle.Secondary),
-          new ButtonBuilder()
-            .setCustomId(`setup_notify:${interaction.guildId}`)
-            .setLabel('Change Notify Channel')
-            .setStyle(ButtonStyle.Secondary),
-        );
-
-        return interaction.editReply({ embeds: [embed], components: [row] });
+        return interaction.editReply({ embeds: [embed], components: rows });
       } catch (err) {
         return interaction.editReply({
           embeds: [errorEmbed('Error', err.message)],

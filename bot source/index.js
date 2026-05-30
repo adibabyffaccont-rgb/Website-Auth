@@ -360,82 +360,10 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
-    // --- Setup buttons ---
-    if (action === 'setup_app') {
-      const guildIdFromBtn = parts[1];
-      await interaction.deferUpdate();
-      try {
-        await api.ensureSystemSession();
-        const apps = await api.getApplications();
-        if (apps.length === 0) {
-          return interaction.editReply({
-            embeds: [errorEmbed('No Applications', 'Create an application on the website first.')],
-            components: [],
-          });
-        }
-        const options = apps.slice(0, 25).map(a => ({
-          label: a.name,
-          value: String(a.id),
-          description: a.description ? a.description.substring(0, 50) : `App ID: ${a.id}`,
-        }));
-        const row = new ActionRowBuilder().addComponents(
-          new StringSelectMenuBuilder()
-            .setCustomId(`setup_app_select:${guildIdFromBtn}`)
-            .setPlaceholder('Select your default application')
-            .addOptions(options),
-        );
-        return interaction.editReply({
-          embeds: [infoEmbed('Select Default App', 'Choose which application commands will operate on by default.')],
-          components: [row],
-        });
-      } catch (err) {
-        return interaction.editReply({ embeds: [errorEmbed('Error', err.message)], components: [] });
-      }
-    }
-
-    if (action === 'setup_logs') {
-      const guildIdFromBtn = parts[1];
-      const row = new ActionRowBuilder().addComponents(
-        new ChannelSelectMenuBuilder()
-          .setCustomId(`setup_logs_select:${guildIdFromBtn}`)
-          .setPlaceholder('Select the logs channel')
-          .addChannelTypes(ChannelType.GuildText),
-      );
-      return interaction.update({
-        embeds: [infoEmbed('Select Logs Channel', 'Choose where bot action logs will be sent.')],
-        components: [row],
-      });
-    }
-
-    if (action === 'setup_notify') {
-      const guildIdFromBtn = parts[1];
-      const row = new ActionRowBuilder().addComponents(
-        new ChannelSelectMenuBuilder()
-          .setCustomId(`setup_notify_select:${guildIdFromBtn}`)
-          .setPlaceholder('Select the notifications channel')
-          .addChannelTypes(ChannelType.GuildText),
-      );
-      return interaction.update({
-        embeds: [infoEmbed('Select Notifications Channel', 'Choose where automated event notifications will appear.')],
-        components: [row],
-      });
-    }
-
-    if (action === 'setup_reseller') {
-      const guildIdFromBtn = parts[1];
-      const row = new ActionRowBuilder().addComponents(
-        new RoleSelectMenuBuilder()
-          .setCustomId(`setup_reseller_select:${guildIdFromBtn}`)
-          .setPlaceholder('Select the reseller role'),
-      );
-      return interaction.update({
-        embeds: [infoEmbed('Select Reseller Role', 'Choose the role that grants access to reseller commands.')],
-        components: [row],
-      });
-    }
 
     return;
   }
+
 
   // ==================== SELECT MENU HANDLER ====================
   if (interaction.isStringSelectMenu() || interaction.isChannelSelectMenu() || interaction.isRoleSelectMenu()) {
