@@ -11,7 +11,6 @@ const authCmds     = require('./commands/auth');
 const appCmds      = require('./commands/apps');
 const userCmds     = require('./commands/users');
 const licenseCmds  = require('./commands/licenses');
-const keyCmds      = require('./commands/key');
 const setupCmds    = require('./commands/setup');
 const statsCmds    = require('./commands/stats');
 const searchCmds   = require('./commands/search');
@@ -69,7 +68,7 @@ const client = new Client({
 client.commands = new Collection();
 
 const allModules = [
-  authCmds, appCmds, userCmds, licenseCmds, keyCmds,
+  authCmds, appCmds, userCmds, licenseCmds,
   setupCmds, statsCmds, searchCmds, statusCmds, miscCmds,
 ];
 
@@ -150,34 +149,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
 
     try {
 
-      // key redeem modal
-      if (action === 'key_redeem') {
-        const linked = await api.requireLinked(interaction.user.id);
-        if (!linked.ok) return interaction.editReply({ embeds: [errorEmbed('Not Linked', linked.error)] });
 
-        const config = await guildConfig.getConfig(interaction.guildId || guildId);
-        if (!config?.defaultAppId) return interaction.editReply({ embeds: [errorEmbed('No Default App', 'Run `/setup` first.')] });
-
-        const keyStr = interaction.fields.getTextInputValue('key');
-        const username = interaction.fields.getTextInputValue('username');
-
-        // Assign license key to user
-        const users = await api.getAppUsers(config.defaultAppId);
-        const user = users.find(u => u.username.toLowerCase() === username.toLowerCase());
-        if (!user) return interaction.editReply({ embeds: [errorEmbed('User Not Found', `No user named \`${username}\`.`)] });
-
-        await api.updateAppUser(config.defaultAppId, user.id, { licenseKey: keyStr });
-
-        await notifications.sendNotification(interaction.guildId, 'KEY_REDEEMED', {
-          'Key': `\`${keyStr}\``,
-          'Assigned To': username,
-          'By': interaction.user.tag,
-        });
-
-        return interaction.editReply({
-          embeds: [successEmbed('Key Redeemed', `Key \`${keyStr}\` assigned to **${username}**.`)],
-        });
-      }
 
     } catch (err) {
       return interaction.editReply({

@@ -8,7 +8,6 @@ const modules = [
   require('./commands/apps'),
   require('./commands/users'),
   require('./commands/licenses'),
-  require('./commands/key'),
   require('./commands/setup'),
   require('./commands/stats'),
   require('./commands/search'),
