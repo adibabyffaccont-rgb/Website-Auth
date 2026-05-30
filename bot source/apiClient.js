@@ -116,6 +116,7 @@ async function requireLinked(discordUserId) {
 const sys = () => getClient(SYSTEM_USER);
 
 async function getApplications()        { return (await sys().get('/api/applications')).data; }
+async function getDiscordApplications(discordUserId) { return (await sys().get(`/api/discord/applications/${discordUserId}`)).data; }
 async function getApplication(id)       { return (await sys().get(`/api/applications/${id}`)).data; }
 async function createApplication(data)  { return (await sys().post('/api/applications', data)).data; }
 async function deleteApplication(id)    { return (await sys().delete(`/api/applications/${id}`)).data; }
@@ -169,7 +170,7 @@ async function checkSiteStatus() {
 
 module.exports = {
   ensureSystemSession, generateVerificationCode, getLinkedAccount, unlinkAccount, requireLinked,
-  getApplications, getApplication, createApplication, deleteApplication, getApplicationStats,
+  getApplications, getDiscordApplications, getApplication, createApplication, deleteApplication, getApplicationStats,
   updateApplication, getDashboardStats,
   getAppUsers, createAppUser, deleteAppUser, banAppUser, unbanAppUser,
   pauseAppUser, unpauseAppUser, resetAppUserHwid, updateAppUser,

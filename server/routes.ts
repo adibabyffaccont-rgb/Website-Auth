@@ -3970,6 +3970,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Bot calls this to get applications for a linked Discord user
+  app.get('/api/discord/applications/:discordUserId', async (req: any, res) => {
+    try {
+      const { discordUserId } = req.params;
+      
+      const [link] = await db.select().from(discordLinks).where(eq(discordLinks.discordUserId, discordUserId)).limit(1);
+      
+      if (!link) {
+        return res.json([]);
+      }
+      
+      const applications = await storage.getAllApplications(link.siteUserId);
+      res.json(applications);
+    } catch (error) {
+      console.error('Error fetching Discord user applications:', error);
+      res.status(500).json({ message: 'Internal server error' });
+    }
+  });
+
   // Bot calls this to unlink a Discord account
   app.delete('/api/discord/unlink/:discordUserId', async (req: any, res) => {
     try {

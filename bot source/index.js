@@ -360,6 +360,14 @@ client.on(Events.InteractionCreate, async (interaction) => {
       }
     }
 
+    // --- Confirm Setup button ---
+    if (action === 'setup_confirm') {
+      await interaction.deferUpdate();
+      return interaction.editReply({
+        embeds: [successEmbed('Setup Complete', 'All server configurations have been saved successfully.')],
+        components: [],
+      });
+    }
 
     return;
   }
@@ -374,9 +382,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       const appId = parseInt(interaction.values[0]);
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { defaultAppId: appId });
       const app = await api.getApplication(appId).catch(() => ({ name: `App #${appId}` }));
-      return interaction.editReply({
+      return interaction.followUp({
         embeds: [successEmbed('Default App Set', `Default application is now **${app.name}** (\`${appId}\`).`)],
-        components: [],
+        ephemeral: true,
       });
     }
 
@@ -384,9 +392,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.deferUpdate();
       const channelId = interaction.values[0];
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { logsChannelId: channelId });
-      return interaction.editReply({
+      return interaction.followUp({
         embeds: [successEmbed('Logs Channel Set', `Bot logs will now be sent to <#${channelId}>.`)],
-        components: [],
+        ephemeral: true,
       });
     }
 
@@ -394,9 +402,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.deferUpdate();
       const channelId = interaction.values[0];
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { notifyChannelId: channelId });
-      return interaction.editReply({
+      return interaction.followUp({
         embeds: [successEmbed('Notifications Channel Set', `Event notifications will be sent to <#${channelId}>.`)],
-        components: [],
+        ephemeral: true,
       });
     }
 
@@ -404,9 +412,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
       await interaction.deferUpdate();
       const roleId = interaction.values[0];
       await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { resellerRoleId: roleId });
-      return interaction.editReply({
+      return interaction.followUp({
         embeds: [successEmbed('Reseller Role Set', `Members with <@&${roleId}> can access reseller commands.`)],
-        components: [],
+        ephemeral: true,
       });
     }
 

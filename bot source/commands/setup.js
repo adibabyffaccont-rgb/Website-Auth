@@ -71,6 +71,14 @@ async function buildSetupComponents(guildId, apps) {
       .setPlaceholder('Reseller Role — grants reseller panel access'),
   ));
 
+  // Row 5: Confirm Setup Button
+  rows.push(new ActionRowBuilder().addComponents(
+    new ButtonBuilder()
+      .setCustomId(`setup_confirm:${guildId}`)
+      .setLabel('Confirm Setup')
+      .setStyle(ButtonStyle.Success)
+  ));
+
   return rows;
 }
 
@@ -90,7 +98,7 @@ module.exports = {
       let apps = [];
       try {
         await api.ensureSystemSession();
-        apps = await api.getApplications();
+        apps = await api.getDiscordApplications(interaction.user.id);
       } catch { /* will show disabled dropdown if unavailable */ }
 
       const embed = setupWelcomeEmbed();
@@ -116,7 +124,7 @@ module.exports = {
         let apps = [];
         try {
           await api.ensureSystemSession();
-          apps = await api.getApplications();
+          apps = await api.getDiscordApplications(interaction.user.id);
         } catch { /* ignore */ }
 
         const embed = settingsEmbed(config, apps);
