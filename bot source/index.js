@@ -15,7 +15,6 @@ const keyCmds      = require('./commands/key');
 const setupCmds    = require('./commands/setup');
 const statsCmds    = require('./commands/stats');
 const searchCmds   = require('./commands/search');
-const resellerCmds = require('./commands/reseller');
 const statusCmds   = require('./commands/status');
 const miscCmds     = require('./commands/misc');
 
@@ -71,7 +70,7 @@ client.commands = new Collection();
 
 const allModules = [
   authCmds, appCmds, userCmds, licenseCmds, keyCmds,
-  setupCmds, statsCmds, searchCmds, resellerCmds, statusCmds, miscCmds,
+  setupCmds, statsCmds, searchCmds, statusCmds, miscCmds,
 ];
 
 for (const mod of allModules) {
@@ -370,12 +369,7 @@ client.on(Events.InteractionCreate, async (interaction) => {
       return;
     }
 
-    if (action === 'setup_reseller_select') {
-      await interaction.deferUpdate();
-      const roleId = interaction.values[0];
-      await guildConfig.setConfig(interaction.guildId || guildIdFromMenu, { resellerRoleId: roleId });
-      return;
-    }
+
 
     return;
   }

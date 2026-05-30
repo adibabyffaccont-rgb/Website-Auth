@@ -64,14 +64,7 @@ async function buildSetupComponents(guildId, apps) {
       .addChannelTypes(ChannelType.GuildText),
   ));
 
-  // Row 4: Reseller Role (shows all roles on the server)
-  rows.push(new ActionRowBuilder().addComponents(
-    new RoleSelectMenuBuilder()
-      .setCustomId(`setup_reseller_select:${guildId}`)
-      .setPlaceholder('Reseller Role — grants reseller panel access'),
-  ));
 
-  // Row 5: Confirm Setup Button
   rows.push(new ActionRowBuilder().addComponents(
     new ButtonBuilder()
       .setCustomId(`setup_confirm:${guildId}`)

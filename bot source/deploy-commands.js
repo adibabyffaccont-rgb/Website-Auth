@@ -12,7 +12,6 @@ const modules = [
   require('./commands/setup'),
   require('./commands/stats'),
   require('./commands/search'),
-  require('./commands/reseller'),
   require('./commands/status'),
   require('./commands/misc'),
 ];
