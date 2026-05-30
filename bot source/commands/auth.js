@@ -61,7 +61,48 @@ module.exports = {
             .setURL(`${SITE_URL}/discord-connect`),
         );
 
-        return interaction.editReply({ embeds: [embed], components: [row] });
+        await interaction.editReply({ embeds: [embed], components: [row] });
+
+        // ── Poll for successful link ──────────────────────────────────────────
+        // Discord interaction tokens are valid for 15 mins; code expires in 10.
+        // We poll every 4 seconds to detect when the user completes linking
+        // on the website, then immediately update this ephemeral reply.
+        let linked = false;
+        const pollInterval = setInterval(async () => {
+          try {
+            const check = await api.getLinkedAccount(interaction.user.id);
+            if (check.linked) {
+              linked = true;
+              clearInterval(pollInterval);
+              clearTimeout(pollTimeout);
+
+              const successEmb = successEmbed(
+                'Account Linked!',
+                [
+                  `${E.HIGH_GREEN_TICK} Your Discord has been linked to **${check.user?.email || 'your site account'}**.`,
+                  ``,
+                  `You now have **full access** to all bot commands.`,
+                  `Use \`/account\` to view your linked profile.`,
+                ].join('\n'),
+              );
+
+              await interaction.editReply({ embeds: [successEmb], components: [] });
+            }
+          } catch { /* ignore transient poll errors */ }
+        }, 4000);
+
+        // Stop polling after 10 minutes regardless
+        const pollTimeout = setTimeout(() => {
+          if (!linked) {
+            clearInterval(pollInterval);
+            // Optionally update the reply to say code expired
+            interaction.editReply({
+              embeds: [errorEmbed('Code Expired', 'The verification code has expired. Please run `/connect` again.')],
+              components: [],
+            }).catch(() => {});
+          }
+        }, 10 * 60 * 1000);
+
       } catch (err) {
         return interaction.editReply({
           embeds: [errorEmbed('Error', err.response?.data?.message || err.message)],
