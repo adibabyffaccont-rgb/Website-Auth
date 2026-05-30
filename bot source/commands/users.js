@@ -39,7 +39,12 @@ module.exports = {
       .setDescription('User management')
       .addSubcommand(sub => sub
         .setName('create')
-        .setDescription('Create a new user'))
+        .setDescription('Create a new user')
+        .addStringOption(opt => opt.setName('username').setDescription('Username').setRequired(true))
+        .addStringOption(opt => opt.setName('password').setDescription('Password').setRequired(true))
+        .addStringOption(opt => opt.setName('expiry').setDescription('Expiry (e.g. 1d, 3 days, 1w, YYYY-MM-DD)')
+            .setRequired(false)
+            .setAutocomplete(true)))
       .addSubcommand(sub => sub
         .setName('info')
         .setDescription('View user details')
@@ -60,37 +65,7 @@ module.exports = {
     async execute(interaction) {
       const sub = interaction.options.getSubcommand();
 
-      if (sub === 'create') {
-        const modal = new ModalBuilder()
-          .setCustomId(`user_create:${interaction.guildId}`)
-          .setTitle('Create User');
-
-        modal.addComponents(
-          new ActionRowBuilder().addComponents(
-            new TextInputBuilder()
-              .setCustomId('username')
-              .setLabel('Username')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(true),
-          ),
-          new ActionRowBuilder().addComponents(
-            new TextInputBuilder()
-              .setCustomId('password')
-              .setLabel('Password')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(true),
-          ),
-          new ActionRowBuilder().addComponents(
-            new TextInputBuilder()
-              .setCustomId('expires')
-              .setLabel('Expiry (e.g. 1d, 3 days, 1w, 1m, YYYY-MM-DD)')
-              .setStyle(TextInputStyle.Short)
-              .setRequired(false),
-          ),
-        );
-        return interaction.showModal(modal);
-      }
-
+      // Make sure it's deferred as we removed the modal
       await interaction.deferReply({ ephemeral: true });
       if (!await requireLinked(interaction)) return;
 
@@ -100,6 +75,60 @@ module.exports = {
           embeds: [errorEmbed('No Default App', 'Run `/setup` to configure a default application.')],
         });
       }
+
+      if (sub === 'create') {
+        const username = interaction.options.getString('username');
+        const password = interaction.options.getString('password');
+        const expiresRaw = interaction.options.getString('expiry');
+        
+        // Parse expiry using same logic (we can move parseExpiry to an exported util or just use it if available)
+        // Since parseExpiry is in index.js, let's just inline a copy here or require it. 
+        // We will inline the parsing logic for simplicity.
+        let expiresAt = null;
+        if (expiresRaw && expiresRaw.trim() !== '' && expiresRaw.toLowerCase() !== 'lifetime') {
+          const str = expiresRaw.toLowerCase().trim();
+          const match = str.match(/^(\d+)\s*(d|day|days|w|week|weeks|m|month|months|y|year|years)$/);
+          if (match) {
+            const value = parseInt(match[1]);
+            const unit = match[2];
+            const date = new Date();
+            if (unit.startsWith('d')) date.setDate(date.getDate() + value);
+            else if (unit.startsWith('w')) date.setDate(date.getDate() + (value * 7));
+            else if (unit.startsWith('m')) date.setMonth(date.getMonth() + value);
+            else if (unit.startsWith('y')) date.setFullYear(date.getFullYear() + value);
+            expiresAt = date.toISOString();
+          } else {
+            const d = new Date(expiresRaw);
+            if (!isNaN(d.getTime())) expiresAt = d.toISOString();
+          }
+        }
+
+        try {
+          const newUser = await api.createAppUser(appId, {
+            username, password, expiresAt, isActive: true,
+          });
+          const app = await api.getApplication(appId);
+
+          const embed = successEmbed('User Created', `**${newUser.username}** added to **${app.name}**.`)
+            .addFields(
+              { name: 'User ID', value: `\`${newUser.id}\``, inline: true },
+              { name: 'Username', value: `\`${newUser.username}\``, inline: true },
+              { name: 'Expires', value: expiresAt ? `<t:${Math.floor(new Date(expiresAt).getTime() / 1000)}:R>` : '\`Never\`', inline: true },
+            );
+
+          await notifications.sendNotification(interaction.guildId, 'USER_CREATED', {
+            'Username': newUser.username,
+            'Created By': interaction.user.tag,
+            'App': app.name,
+          });
+
+          return interaction.editReply({ embeds: [embed] });
+        } catch (err) {
+          return interaction.editReply({ embeds: [errorEmbed('Error', err.response?.data?.message || err.message)] });
+        }
+      }
+
+
 
       const username = interaction.options.getString('username');
 

@@ -131,84 +131,25 @@ client.on(Events.InteractionCreate, async (interaction) => {
     return;
   }
 
+  // ==================== AUTOCOMPLETE HANDLER ====================
+  if (interaction.isAutocomplete()) {
+    const focusedOption = interaction.options.getFocused(true);
+    if (focusedOption.name === 'expiry' || focusedOption.name === 'days') {
+      const choices = ['1 Day', '3 Days', '7 Days', '30 Days', '1 Month', '1 Year', 'Lifetime'];
+      const filtered = choices.filter(choice => choice.toLowerCase().startsWith(focusedOption.value.toLowerCase()));
+      await interaction.respond(
+        filtered.map(choice => ({ name: choice, value: choice }))
+      );
+    }
+    return;
+  }
+
   // ==================== MODAL HANDLER ====================
   if (interaction.isModalSubmit()) {
     const [action, guildId] = interaction.customId.split(':');
     await interaction.deferReply({ ephemeral: true });
 
     try {
-      // license create modal
-      if (action === 'license_create' || action === 'key_generate') {
-        const linked = await api.requireLinked(interaction.user.id);
-        if (!linked.ok) {
-          return interaction.editReply({ embeds: [errorEmbed('Not Linked', linked.error)] });
-        }
-        const config = await guildConfig.getConfig(interaction.guildId || guildId);
-        if (!config?.defaultAppId) {
-          return interaction.editReply({ embeds: [errorEmbed('No Default App', 'Run `/setup` first.')] });
-        }
-
-        const days = parseInt(interaction.fields.getTextInputValue('days'));
-        const maxUsers = parseInt(interaction.fields.getTextInputValue('max_users') || '1') || 1;
-        const description = interaction.fields.getTextInputValue('description') || undefined;
-
-        if (isNaN(days) || days < 1) {
-          return interaction.editReply({ embeds: [errorEmbed('Invalid Input', 'Days must be a positive number.')] });
-        }
-
-        const license = await api.generateLicense(config.defaultAppId, { validityDays: days, maxUsers, description });
-        const app = await api.getApplication(config.defaultAppId);
-
-        const embed = successEmbed('License Key Created', `New key created for **${app.name}**.`)
-          .addFields(
-            { name: `${E.KEY} License Key`, value: `\`\`\`${license.licenseKey}\`\`\``, inline: false },
-            { name: 'Max Users', value: `\`${license.maxUsers}\``, inline: true },
-            { name: 'Valid For', value: `\`${license.validityDays} days\``, inline: true },
-            { name: 'Expires', value: `<t:${Math.floor(new Date(license.expiresAt).getTime() / 1000)}:R>`, inline: true },
-          );
-
-        await notifications.sendNotification(interaction.guildId, 'LICENSE_CREATED', {
-          'Key': `\`${license.licenseKey}\``,
-          'Created By': interaction.user.tag,
-          'App': app.name,
-        });
-
-        return interaction.editReply({ embeds: [embed] });
-      }
-
-      // user create modal
-      if (action === 'user_create') {
-        const linked = await api.requireLinked(interaction.user.id);
-        if (!linked.ok) return interaction.editReply({ embeds: [errorEmbed('Not Linked', linked.error)] });
-
-        const config = await guildConfig.getConfig(interaction.guildId || guildId);
-        if (!config?.defaultAppId) return interaction.editReply({ embeds: [errorEmbed('No Default App', 'Run `/setup` first.')] });
-
-        const username = interaction.fields.getTextInputValue('username');
-        const password = interaction.fields.getTextInputValue('password');
-        const expiresRaw = interaction.fields.getTextInputValue('expires') || null;
-        const expiresAt = parseExpiry(expiresRaw);
-
-        const newUser = await api.createAppUser(config.defaultAppId, {
-          username, password, expiresAt, isActive: true,
-        });
-        const app = await api.getApplication(config.defaultAppId);
-
-        const embed = successEmbed('User Created', `**${newUser.username}** added to **${app.name}**.`)
-          .addFields(
-            { name: 'User ID', value: `\`${newUser.id}\``, inline: true },
-            { name: 'Username', value: `\`${newUser.username}\``, inline: true },
-            { name: 'Expires', value: expiresAt ? `<t:${Math.floor(new Date(expiresAt).getTime() / 1000)}:R>` : '`Never`', inline: true },
-          );
-
-        await notifications.sendNotification(interaction.guildId, 'USER_CREATED', {
-          'Username': newUser.username,
-          'Created By': interaction.user.tag,
-          'App': app.name,
-        });
-
-        return interaction.editReply({ embeds: [embed] });
-      }
 
       // key redeem modal
       if (action === 'key_redeem') {
