@@ -3817,6 +3817,173 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // ======================== DISCORD BOT INTEGRATION ROUTES ========================
+
+  // In-memory stores for Discord linking
+  const discordCodeStore = new Map<string, { code: string; expiresAt: number }>();
+  const discordLinkStore = new Map<string, string>(); // discordUserId -> siteUserId
+  const guildConfigStore = new Map<string, any>(); // guildId -> config
+
+  const generateDiscordCode = () =>
+    Array.from({ length: 8 }, () =>
+      'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'[Math.floor(Math.random() * 32)]
+    ).join('');
+
+  // Bot calls this to generate a verification code for a Discord user
+  app.post('/api/discord/generate-code', async (req: any, res) => {
+    try {
+      const { discordUserId } = req.body;
+      if (!discordUserId) {
+        return res.status(400).json({ success: false, message: 'discordUserId is required' });
+      }
+
+      // Check if already linked
+      if (discordLinkStore.has(discordUserId)) {
+        return res.status(409).json({ success: false, message: 'Discord account already linked. Use /disconnect first.' });
+      }
+
+      const code = generateDiscordCode();
+      const expiresAt = Date.now() + 10 * 60 * 1000; // 10 minutes
+      discordCodeStore.set(discordUserId, { code, expiresAt });
+
+      return res.json({ success: true, code, expiresAt });
+    } catch (error) {
+      console.error('Error generating Discord code:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+
+  // Website calls this to verify and link a Discord account
+  app.post('/api/discord/verify', async (req: any, res) => {
+    try {
+      const { discordUserId, code } = req.body;
+      if (!discordUserId || !code) {
+        return res.status(400).json({ success: false, message: 'discordUserId and code are required' });
+      }
+
+      // Must be logged in on the website
+      if (!req.session || !(req.session as any).user) {
+        return res.status(401).json({ success: false, message: 'You must be logged in to link your Discord account' });
+      }
+
+      const siteUser = (req.session as any).user;
+
+      const entry = discordCodeStore.get(discordUserId);
+      if (!entry) {
+        return res.status(400).json({ success: false, message: 'No verification code found. Please run /connect in Discord first.' });
+      }
+
+      if (Date.now() > entry.expiresAt) {
+        discordCodeStore.delete(discordUserId);
+        return res.status(400).json({ success: false, message: 'Verification code has expired. Please run /connect again.' });
+      }
+
+      if (entry.code.toUpperCase() !== code.toUpperCase()) {
+        return res.status(400).json({ success: false, message: 'Invalid verification code.' });
+      }
+
+      // Check if this site account is already linked to a different Discord
+      for (const [dId, sId] of Array.from(discordLinkStore.entries())) {
+        if (sId === siteUser.id && dId !== discordUserId) {
+          return res.status(409).json({ success: false, message: 'This website account is already linked to a different Discord account.' });
+        }
+      }
+
+      // Mark code as used and link
+      discordCodeStore.delete(discordUserId);
+      discordLinkStore.set(discordUserId, siteUser.id);
+
+      return res.json({
+        success: true,
+        message: 'Discord account linked successfully!',
+        linkedUser: {
+          discordUserId,
+          siteUserId: siteUser.id,
+          email: siteUser.email,
+          firstName: siteUser.firstName,
+        }
+      });
+    } catch (error) {
+      console.error('Error verifying Discord code:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+
+  // Bot calls this to check if a Discord user is linked and get their site session
+  app.get('/api/discord/linked/:discordUserId', async (req: any, res) => {
+    try {
+      const { discordUserId } = req.params;
+      const siteUserId = discordLinkStore.get(discordUserId);
+
+      if (!siteUserId) {
+        return res.status(404).json({ success: false, message: 'Discord account not linked', linked: false });
+      }
+
+      const user = await storage.getUser(siteUserId);
+      if (!user) {
+        discordLinkStore.delete(discordUserId);
+        return res.status(404).json({ success: false, message: 'Linked site user not found', linked: false });
+      }
+
+      return res.json({
+        success: true,
+        linked: true,
+        siteUserId,
+        user: {
+          id: user.id,
+          email: user.email,
+          firstName: user.firstName,
+          lastName: user.lastName,
+          role: user.role,
+          isActive: user.isActive,
+          createdAt: user.createdAt,
+        }
+      });
+    } catch (error) {
+      console.error('Error checking Discord link:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+
+  // Bot calls this to unlink a Discord account
+  app.delete('/api/discord/unlink/:discordUserId', async (req: any, res) => {
+    try {
+      const { discordUserId } = req.params;
+      if (!discordLinkStore.has(discordUserId)) {
+        return res.status(404).json({ success: false, message: 'Discord account is not linked' });
+      }
+      discordLinkStore.delete(discordUserId);
+      return res.json({ success: true, message: 'Discord account unlinked successfully' });
+    } catch (error) {
+      console.error('Error unlinking Discord account:', error);
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+
+  // Bot calls this to get guild config
+  app.get('/api/discord/guild-config/:guildId', async (req: any, res) => {
+    try {
+      const { guildId } = req.params;
+      const config = guildConfigStore.get(guildId) || null;
+      return res.json({ success: true, config });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+
+  // Bot calls this to save guild config
+  app.post('/api/discord/guild-config/:guildId', async (req: any, res) => {
+    try {
+      const { guildId } = req.params;
+      const existing = guildConfigStore.get(guildId) || {};
+      const updated = { ...existing, ...req.body, updatedAt: new Date().toISOString() };
+      guildConfigStore.set(guildId, updated);
+      return res.json({ success: true, config: updated });
+    } catch (error) {
+      res.status(500).json({ success: false, message: 'Internal server error' });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

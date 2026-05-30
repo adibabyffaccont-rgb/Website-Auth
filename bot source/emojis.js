@@ -1,0 +1,44 @@
+module.exports = {
+  // Security / Auth
+  SECURITY_SHIELD: '<:icons8securityshield48:1509673927172034560>',
+  KEY: '<:icons8key64:1509673874307022938>',
+  
+  // Users
+  USER: '<:user:1509664621508956270>',
+  USER_CROSS: '<:usercros:1509664645957550262>',
+  DELETE_USER: '<:deleteuser:1509673853301817476>',
+  
+  // Info & Status
+  INFO: '<:icons8info48:1509670131511595027>',
+  WARNING: '<:warning:1509664707261239519>',
+  TICK_PRIME: '<:tickprime:1509664600109355178>',
+  HIGH_GREEN_TICK: '<:highgreentick:1509664490646667314>',
+  CROSS_MAIN: '<:cross_main:1509664338624118794>',
+  IGNORE: '<:ignore:1509664507306180678>',
+  
+  // Loading & Animated (Assuming a: for animated based on names)
+  SPINNER_CIRCLE: '<a:spinnercircle:1509669668351250603>',
+  REFRESH_ANIMATED: '<a:refreshanimated:1509669650001301637>',
+  LOADING_DOTS_BLUE: '<a:loadingdotsblueshade:1509669633286733946>',
+  LOADING_DOTS: '<a:loadingdots:1509669615003898028>',
+  LOADING_CIRCLE: '<a:loadingcircle:1509669595022098433>',
+  
+  // Static Actions
+  REFRESH_STATIC: '<:refreshstatic:1509669562663309522>',
+  DOUBLE_LEFT: '<:doubleleft:1509669498679066674>',
+  DOUBLE_RIGHT: '<:doubleright:1509669484032557209>',
+  HAMMER: '<:hammer:1509664476100558908>',
+  
+  // Categories / Modules
+  VOICE: '<:Voice:1509664690358452516>',
+  MUSIC: '<:music:1509664558963363850>',
+  MEDIA: '<:media:1509664543759138816>',
+  INVC: '<:invc:1509664525505269890>',
+  HACK_ANTI: '<:hackanti:1509664458660774110>',
+  GREET: '<:greet:1509664442965692447>',
+  GIVEAWAY: '<:giveaway:1509664426687725719>',
+  GENERAL: '<:general:1509664398321647696>',
+  GAMES: '<:games:1509664381938438355>',
+  EXTRA: '<:extra:1509664352603603107>',
+  ACTIVITY: '<:activity:1509663954962612364>',
+};

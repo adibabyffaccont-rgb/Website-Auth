@@ -1,0 +1,143 @@
+'use strict';
+
+const {
+  SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, ModalBuilder, TextInputBuilder, TextInputStyle,
+} = require('discord.js');
+const api = require('../apiClient');
+const { connectEmbed, accountEmbed, successEmbed, errorEmbed, infoEmbed, loadingEmbed } = require('../embeds');
+const E = require('../emojis');
+
+const SITE_URL = (process.env.SITE_URL || 'http://localhost:5000').replace(/\/$/, '');
+
+// Helper: check if user is linked
+async function requireLinked(interaction) {
+  const result = await api.requireLinked(interaction.user.id);
+  if (!result.ok) {
+    await interaction.editReply({
+      embeds: [errorEmbed('Not Linked', result.error)],
+    });
+    return null;
+  }
+  return result.user;
+}
+
+module.exports = {
+
+  // ===================== /connect =====================
+  connect: {
+    data: new SlashCommandBuilder()
+      .setName('connect')
+      .setDescription('Link your Discord account to the AdiCheats dashboard'),
+
+    async execute(interaction) {
+      await interaction.deferReply({ ephemeral: true });
+
+      // Check if already linked
+      try {
+        const existing = await api.getLinkedAccount(interaction.user.id);
+        if (existing.linked) {
+          const embed = infoEmbed(
+            'Already Linked',
+            `Your Discord is already linked to **${existing.user?.email || 'a site account'}**.\nUse \`/disconnect\` to unlink first.`,
+          );
+          return interaction.editReply({ embeds: [embed] });
+        }
+      } catch { /* not linked, continue */ }
+
+      try {
+        const result = await api.generateVerificationCode(interaction.user.id);
+        if (!result.success) {
+          return interaction.editReply({
+            embeds: [errorEmbed('Failed to Generate Code', result.message || 'Please try again.')],
+          });
+        }
+
+        const embed = connectEmbed(interaction.user.id, result.code, result.expiresAt, SITE_URL);
+
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setLabel('Open Dashboard')
+            .setStyle(ButtonStyle.Link)
+            .setURL(`${SITE_URL}/discord-connect`),
+        );
+
+        return interaction.editReply({ embeds: [embed], components: [row] });
+      } catch (err) {
+        return interaction.editReply({
+          embeds: [errorEmbed('Error', err.response?.data?.message || err.message)],
+        });
+      }
+    },
+  },
+
+  // ===================== /disconnect =====================
+  disconnect: {
+    data: new SlashCommandBuilder()
+      .setName('disconnect')
+      .setDescription('Unlink your Discord account from the AdiCheats dashboard'),
+
+    async execute(interaction) {
+      await interaction.deferReply({ ephemeral: true });
+
+      try {
+        const existing = await api.getLinkedAccount(interaction.user.id);
+        if (!existing.linked) {
+          return interaction.editReply({
+            embeds: [errorEmbed('Not Linked', 'Your Discord account is not linked. Run `/connect` to link it.')],
+          });
+        }
+
+        // Confirmation button
+        const row = new ActionRowBuilder().addComponents(
+          new ButtonBuilder()
+            .setCustomId(`disconnect_confirm:${interaction.user.id}`)
+            .setLabel('Confirm Disconnect')
+            .setStyle(ButtonStyle.Danger),
+          new ButtonBuilder()
+            .setCustomId(`disconnect_cancel:${interaction.user.id}`)
+            .setLabel('Cancel')
+            .setStyle(ButtonStyle.Secondary),
+        );
+
+        const embed = errorEmbed(
+          'Confirm Disconnect',
+          `Are you sure you want to unlink your Discord from **${existing.user?.email || 'your site account'}**?\n\nYou will lose bot access until you reconnect.`,
+        );
+
+        return interaction.editReply({ embeds: [embed], components: [row] });
+      } catch (err) {
+        return interaction.editReply({
+          embeds: [errorEmbed('Error', err.response?.data?.message || err.message)],
+        });
+      }
+    },
+  },
+
+  // ===================== /account =====================
+  account: {
+    data: new SlashCommandBuilder()
+      .setName('account')
+      .setDescription('View your linked account information'),
+
+    async execute(interaction) {
+      await interaction.deferReply({ ephemeral: true });
+
+      try {
+        const link = await api.getLinkedAccount(interaction.user.id);
+        if (!link.linked) {
+          return interaction.editReply({
+            embeds: [errorEmbed('Not Linked', 'Your Discord account is not linked. Run `/connect` to get started.')],
+          });
+        }
+
+        return interaction.editReply({
+          embeds: [accountEmbed(link.user, interaction.user)],
+        });
+      } catch (err) {
+        return interaction.editReply({
+          embeds: [errorEmbed('Error', err.response?.data?.message || err.message)],
+        });
+      }
+    },
+  },
+};

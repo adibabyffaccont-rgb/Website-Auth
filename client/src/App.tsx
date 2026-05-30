@@ -19,6 +19,7 @@ import ResellerDashboard from "@/pages/reseller-dashboard";
 import Landing from "@/pages/landing";
 import CustomMessages from "@/pages/custom-messages";
 import NotFound from "@/pages/not-found";
+import DiscordConnect from "@/pages/discord-connect";
 
 function Router() {
   const { user, isAuthenticated, isLoading } = useAuth();
@@ -51,6 +52,7 @@ function Router() {
           <Route path="/login" component={SimpleLogin} />
           <Route path="/admin-login" component={Admin} />
           <Route path="/user-management" component={UserManagement} />
+          <Route path="/discord-connect" component={DiscordConnect} />
         </>
       ) : (
         <>
@@ -66,6 +68,7 @@ function Router() {
           <Route path="/user-management" component={UserManagement} />
           <Route path="/custom-messages" component={CustomMessages} />
           <Route path="/admin-login" component={Admin} />
+          <Route path="/discord-connect" component={DiscordConnect} />
         </>
       )}
       <Route component={NotFound} />
