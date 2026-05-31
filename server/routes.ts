@@ -101,9 +101,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
   const generateOtp = (len = 6) => Array.from({ length: len }, () => Math.floor(Math.random() * 10)).join("");
   // No auth middleware setup needed for simple session-based auth
 
-  // Helper to check application access (Owner OR Collaborator)
+  // Helper to check application access (Owner, Collaborator, or Admin)
   const checkAccess = async (userId: string, application: any) => {
     if (application.userId === userId) return true;
+    
+    // Check if user is an admin
+    const user = await storage.getUser(userId);
+    if (user && (user as any).role === 'admin') return true;
+
     const collaborators = await storage.getApplicationCollaborators(application.id);
     return !!collaborators.find(c => c.email === userId && c.isActive);
   };
