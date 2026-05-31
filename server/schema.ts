@@ -145,16 +145,11 @@ export const customMessages = pgTable("custom_messages", {
 
 // ======================== DISCORD INTEGRATION ========================
 
-export const discordLinks = pgTable("discord_links", {
-  id: serial("id").primaryKey(),
-  discordUserId: text("discord_user_id").notNull().unique(),
-  siteUserId: text("site_user_id").notNull().references(() => users.id, { onDelete: 'cascade' }),
-  linkedAt: timestamp("linked_at").notNull().defaultNow(),
-});
 
 export const discordVerifications = pgTable("discord_verifications", {
   id: serial("id").primaryKey(),
   discordUserId: text("discord_user_id").notNull(),
+  guildId: text("guild_id").notNull(),
   code: text("code").notNull(),
   expiresAt: timestamp("expires_at").notNull(),
   used: boolean("used").notNull().default(false),
@@ -168,6 +163,8 @@ export const guildConfigs = pgTable("guild_configs", {
   logsChannelId: text("logs_channel_id"),
   notifyChannelId: text("notify_channel_id"),
   resellerRoleId: text("reseller_role_id"),
+  linkedSiteUserId: text("linked_site_user_id").references(() => users.id, { onDelete: 'set null' }),
+  linkedDiscordUserId: text("linked_discord_user_id"),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });
 
@@ -181,7 +178,6 @@ export type ActivityLog = typeof activityLogs.$inferSelect;
 export type ActiveSession = typeof activeSessions.$inferSelect;
 export type ApplicationCollaborator = typeof applicationCollaborators.$inferSelect;
 export type CustomMessages = typeof customMessages.$inferSelect;
-export type DiscordLink = typeof discordLinks.$inferSelect;
 export type DiscordVerification = typeof discordVerifications.$inferSelect;
 export type GuildConfig = typeof guildConfigs.$inferSelect;
 

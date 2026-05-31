@@ -11,7 +11,7 @@ const SITE_URL = (process.env.SITE_URL || 'http://localhost:5000').replace(/\/$/
 
 // Helper: check if user is linked
 async function requireLinked(interaction) {
-  const result = await api.requireLinked(interaction.user.id);
+  const result = await api.requireLinked(interaction);
   if (!result.ok) {
     await interaction.editReply({
       embeds: [errorEmbed('Not Linked', result.error)],
@@ -34,18 +34,18 @@ module.exports = {
 
       // Check if already linked
       try {
-        const existing = await api.getLinkedAccount(interaction.user.id);
+        const existing = await api.getLinkedAccount(interaction.guildId);
         if (existing.linked) {
           const embed = infoEmbed(
             'Already Linked',
-            `Your Discord is already linked to **${existing.user?.email || 'a site account'}**.\nUse \`/disconnect\` to unlink first.`,
+            `This server is already linked to **${existing.user?.email || 'a site account'}**.\nThe linked Discord user or server owner must use \`/disconnect\` to unlink first.`,
           );
           return interaction.editReply({ embeds: [embed] });
         }
       } catch { /* not linked, continue */ }
 
       try {
-        const result = await api.generateVerificationCode(interaction.user.id);
+        const result = await api.generateVerificationCode(interaction.guildId, interaction.user.id);
         if (!result.success) {
           return interaction.editReply({
             embeds: [errorEmbed('Failed to Generate Code', result.message || 'Please try again.')],
@@ -70,7 +70,7 @@ module.exports = {
         let linked = false;
         const pollInterval = setInterval(async () => {
           try {
-            const check = await api.getLinkedAccount(interaction.user.id);
+            const check = await api.getLinkedAccount(interaction.guildId);
             if (check.linked) {
               linked = true;
               clearInterval(pollInterval);
@@ -79,7 +79,7 @@ module.exports = {
               const successEmb = successEmbed(
                 'Account Linked!',
                 [
-                  `${E.HIGH_GREEN_TICK} Your Discord has been linked to **${check.user?.email || 'your site account'}**.`,
+                  `${E.HIGH_GREEN_TICK} This Discord server has been linked to **${check.user?.email || 'your site account'}**.`,
                   ``,
                   `You now have **full access** to all bot commands.`,
                   `Use \`/account\` to view your linked profile.`,
@@ -121,10 +121,19 @@ module.exports = {
       await interaction.deferReply({ ephemeral: true });
 
       try {
-        const existing = await api.getLinkedAccount(interaction.user.id);
+        const existing = await api.getLinkedAccount(interaction.guildId);
         if (!existing.linked) {
           return interaction.editReply({
-            embeds: [errorEmbed('Not Linked', 'Your Discord account is not linked. Run `/connect` to link it.')],
+            embeds: [errorEmbed('Not Linked', 'This server is not linked. Run `/connect` to link it.')],
+          });
+        }
+
+        const isLinkedUser = existing.linkedDiscordUserId === interaction.user.id;
+        const isServerOwner = interaction.user.id === interaction.guild.ownerId;
+
+        if (!isLinkedUser && !isServerOwner) {
+          return interaction.editReply({
+            embeds: [errorEmbed('Unauthorized', 'Only the Linked Discord Account or the Server Owner can disconnect the bot.')],
           });
         }
 
@@ -142,7 +151,7 @@ module.exports = {
 
         const embed = errorEmbed(
           'Confirm Disconnect',
-          `Are you sure you want to unlink your Discord from **${existing.user?.email || 'your site account'}**?\n\nYou will lose bot access until you reconnect.`,
+          `Are you sure you want to unlink this server from **${existing.user?.email || 'the site account'}**?\n\nAll bot management features will become unavailable until another account is linked.`,
         );
 
         return interaction.editReply({ embeds: [embed], components: [row] });
@@ -164,15 +173,24 @@ module.exports = {
       await interaction.deferReply({ ephemeral: true });
 
       try {
-        const link = await api.getLinkedAccount(interaction.user.id);
+        const link = await api.getLinkedAccount(interaction.guildId);
         if (!link.linked) {
           return interaction.editReply({
-            embeds: [errorEmbed('Not Linked', 'Your Discord account is not linked. Run `/connect` to get started.')],
+            embeds: [errorEmbed('Not Linked', 'This server is not linked. Run `/connect` to get started.')],
+          });
+        }
+
+        const isLinkedUser = link.linkedDiscordUserId === interaction.user.id;
+        const isServerOwner = interaction.user.id === interaction.guild.ownerId;
+
+        if (!isLinkedUser && !isServerOwner) {
+          return interaction.editReply({
+            embeds: [errorEmbed('Unauthorized', 'Only the Linked Discord Account or the Server Owner can view the link status.')],
           });
         }
 
         return interaction.editReply({
-          embeds: [accountEmbed(link.user, interaction.user)],
+          embeds: [accountEmbed(link.user, interaction.client.users.cache.get(link.linkedDiscordUserId) || { id: link.linkedDiscordUserId })],
         });
       } catch (err) {
         return interaction.editReply({

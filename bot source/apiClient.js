@@ -81,16 +81,16 @@ async function ensureSystemSession() {
 
 // ==================== DISCORD LINK ====================
 
-async function generateVerificationCode(discordUserId) {
+async function generateVerificationCode(guildId, discordUserId) {
   await ensureSystemSession();
-  const res = await getClient(SYSTEM_USER).post('/api/discord/generate-code', { discordUserId });
+  const res = await getClient(SYSTEM_USER).post('/api/discord/generate-code', { guildId, discordUserId });
   return res.data;
 }
 
-async function getLinkedAccount(discordUserId) {
+async function getLinkedAccount(guildId) {
   await ensureSystemSession();
   try {
-    const res = await getClient(SYSTEM_USER).get(`/api/discord/linked/${discordUserId}`);
+    const res = await getClient(SYSTEM_USER).get(`/api/discord/linked/${guildId}`);
     return res.data;
   } catch (err) {
     if (err.response?.status === 404) return { linked: false };
@@ -98,25 +98,28 @@ async function getLinkedAccount(discordUserId) {
   }
 }
 
-async function unlinkAccount(discordUserId) {
+async function unlinkAccount(guildId) {
   await ensureSystemSession();
-  const res = await getClient(SYSTEM_USER).delete(`/api/discord/unlink/${discordUserId}`);
+  const res = await getClient(SYSTEM_USER).delete(`/api/discord/unlink/${guildId}`);
   return res.data;
 }
 
-async function requireLinked(discordUserId) {
+async function requireLinked(interaction) {
   const ok = await ensureSystemSession();
   if (!ok) return { ok: false, error: 'Bot session failed. Contact admin.' };
-  const link = await getLinkedAccount(discordUserId);
-  if (!link.linked) return { ok: false, error: 'Account not linked. Run `/connect` first.' };
-  return { ok: true, user: link.user };
+  const link = await getLinkedAccount(interaction.guildId);
+  if (!link.linked) return { ok: false, error: 'No account linked to this server. Run `/connect` first.' };
+  if (link.linkedDiscordUserId !== interaction.user.id) {
+    return { ok: false, error: 'You are not the linked account for this server. Only the linked account can perform management actions.' };
+  }
+  return { ok: true, user: link.user, linkedDiscordUserId: link.linkedDiscordUserId };
 }
 
 // ==================== APPLICATIONS ====================
 const sys = () => getClient(SYSTEM_USER);
 
 async function getApplications()        { return (await sys().get('/api/applications')).data; }
-async function getDiscordApplications(discordUserId) { return (await sys().get(`/api/discord/applications/${discordUserId}`)).data; }
+async function getDiscordApplications(guildId) { return (await sys().get(`/api/discord/applications/${guildId}`)).data; }
 async function getApplication(id)       { return (await sys().get(`/api/applications/${id}`)).data; }
 async function createApplication(data)  { return (await sys().post('/api/applications', data)).data; }
 async function deleteApplication(id)    { return (await sys().delete(`/api/applications/${id}`)).data; }

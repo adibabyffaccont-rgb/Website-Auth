@@ -8,7 +8,7 @@ const {
 const E = require('../emojis');
 
 async function requireLinked(interaction) {
-  const result = await api.requireLinked(interaction.user.id);
+  const result = await api.requireLinked(interaction);
   if (!result.ok) {
     await interaction.editReply({ embeds: [errorEmbed('Not Linked', result.error)] });
     return null;

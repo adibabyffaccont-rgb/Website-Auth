@@ -91,7 +91,7 @@ module.exports = {
       let apps = [];
       try {
         await api.ensureSystemSession();
-        apps = await api.getDiscordApplications(interaction.user.id);
+        apps = await api.getDiscordApplications(interaction.guildId);
       } catch { /* will show disabled dropdown if unavailable */ }
 
       const embed = setupWelcomeEmbed();
@@ -117,7 +117,7 @@ module.exports = {
         let apps = [];
         try {
           await api.ensureSystemSession();
-          apps = await api.getDiscordApplications(interaction.user.id);
+          apps = await api.getDiscordApplications(interaction.guildId);
         } catch { /* ignore */ }
 
         const embed = settingsEmbed(config, apps);

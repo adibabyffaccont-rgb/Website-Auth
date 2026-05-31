@@ -104,7 +104,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Helper to check application access (Owner, Collaborator, or Admin)
   const checkAccess = async (userId: string, application: any) => {
     if (application.userId === userId) return true;
-    
+
     // Check if user is an admin
     const user = await storage.getUser(userId);
     if (user && (user as any).role === 'admin') return true;
@@ -3834,26 +3834,31 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Bot calls this to generate a verification code for a Discord user
   app.post('/api/discord/generate-code', async (req: any, res) => {
     try {
-      const { discordUserId } = req.body;
-      if (!discordUserId) {
-        return res.status(400).json({ success: false, message: 'discordUserId is required' });
+      const { discordUserId, guildId } = req.body;
+      if (!discordUserId || !guildId) {
+        return res.status(400).json({ success: false, message: 'discordUserId and guildId are required' });
       }
 
-      // Check if already linked in database
-      const [existingLink] = await db.select().from(discordLinks).where(eq(discordLinks.discordUserId, discordUserId)).limit(1);
-      if (existingLink) {
-        return res.status(409).json({ success: false, message: 'Discord account already linked. Use /disconnect first.' });
+      // Check if guild is already linked in database
+      const [existingConfig] = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).limit(1);
+      if (existingConfig && existingConfig.linkedSiteUserId) {
+        return res.status(409).json({ success: false, message: 'This server already has a linked website account. Use /disconnect first.' });
       }
 
       const code = generateDiscordCode();
       const expiresAt = new Date(Date.now() + 10 * 60 * 1000); // 10 minutes from now
 
-      // Delete any previous unused codes for this Discord ID to clean up
-      await db.delete(discordVerifications).where(eq(discordVerifications.discordUserId, discordUserId));
+      // Delete any previous unused codes for this Discord ID and Guild ID to clean up
+      await db.delete(discordVerifications)
+        .where(and(
+          eq(discordVerifications.discordUserId, discordUserId),
+          eq(discordVerifications.guildId, guildId)
+        ));
 
       // Save the new verification code in PostgreSQL
       await db.insert(discordVerifications).values({
         discordUserId,
+        guildId,
         code,
         expiresAt,
         used: false,
@@ -3902,23 +3907,29 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ success: false, message: 'Invalid verification code.' });
       }
 
-      // Check if this website account is already linked to a different Discord in database
-      const [alreadyLinked] = await db.select().from(discordLinks).where(eq(discordLinks.siteUserId, siteUser.id)).limit(1);
-      if (alreadyLinked && alreadyLinked.discordUserId !== discordUserId) {
-        return res.status(409).json({ success: false, message: 'This website account is already linked to a different Discord account.' });
-      }
-
       // Mark verification code as used
       await db.update(discordVerifications)
         .set({ used: true })
         .where(eq(discordVerifications.id, entry.id));
 
-      // Link account by inserting/replacing in pg database
-      await db.delete(discordLinks).where(eq(discordLinks.discordUserId, discordUserId));
-      await db.insert(discordLinks).values({
-        discordUserId,
-        siteUserId: siteUser.id,
-      });
+      const guildId = entry.guildId;
+
+      // Link account by inserting/updating guildConfigs
+      const [existingConfig] = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).limit(1);
+      
+      if (existingConfig) {
+        await db.update(guildConfigs).set({
+          linkedSiteUserId: siteUser.id,
+          linkedDiscordUserId: discordUserId,
+          updatedAt: new Date(),
+        }).where(eq(guildConfigs.guildId, guildId));
+      } else {
+        await db.insert(guildConfigs).values({
+          guildId,
+          linkedSiteUserId: siteUser.id,
+          linkedDiscordUserId: discordUserId,
+        });
+      }
 
       return res.json({
         success: true,
@@ -3937,36 +3948,32 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bot calls this to check if a Discord user is linked and get their site session
-  app.get('/api/discord/linked/:discordUserId', async (req: any, res) => {
+  app.get('/api/discord/linked/:guildId', async (req: any, res) => {
     try {
-      const { discordUserId } = req.params;
-      
-      // Look up linked account in Postgres
-      const [link] = await db.select().from(discordLinks).where(eq(discordLinks.discordUserId, discordUserId)).limit(1);
+      const { guildId } = req.params;
 
-      if (!link) {
-        return res.status(404).json({ success: false, message: 'Discord account not linked', linked: false });
+      // Look up server config
+      const [config] = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).limit(1);
+
+      if (!config || !config.linkedSiteUserId) {
+        return res.status(404).json({ success: false, message: 'Server is not linked', linked: false });
       }
 
-      const user = await storage.getUser(link.siteUserId);
+      const user = await storage.getUser(config.linkedSiteUserId);
       if (!user) {
-        // Clean up orphaned link record
-        await db.delete(discordLinks).where(eq(discordLinks.discordUserId, discordUserId));
         return res.status(404).json({ success: false, message: 'Linked site user not found', linked: false });
       }
 
       return res.json({
         success: true,
         linked: true,
-        siteUserId: link.siteUserId,
+        linkedDiscordUserId: config.linkedDiscordUserId,
         user: {
           id: user.id,
           email: user.email,
           firstName: user.firstName,
           lastName: user.lastName,
-          role: user.role,
-          isActive: user.isActive,
-          createdAt: user.createdAt,
+          role: (user as any).role || 'user'
         }
       });
     } catch (error) {
@@ -3976,17 +3983,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bot calls this to get applications for a linked Discord user
-  app.get('/api/discord/applications/:discordUserId', async (req: any, res) => {
+  app.get('/api/discord/applications/:guildId', async (req: any, res) => {
     try {
-      const { discordUserId } = req.params;
-      
-      const [link] = await db.select().from(discordLinks).where(eq(discordLinks.discordUserId, discordUserId)).limit(1);
-      
-      if (!link) {
+      const { guildId } = req.params;
+
+      const [config] = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).limit(1);
+
+      if (!config || !config.linkedSiteUserId) {
         return res.json([]);
       }
-      
-      const applications = await storage.getAllApplications(link.siteUserId);
+
+      const applications = await storage.getAllApplications(config.linkedSiteUserId);
       res.json(applications);
     } catch (error) {
       console.error('Error fetching Discord user applications:', error);
@@ -3995,16 +4002,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Bot calls this to unlink a Discord account
-  app.delete('/api/discord/unlink/:discordUserId', async (req: any, res) => {
+  app.delete('/api/discord/unlink/:guildId', async (req: any, res) => {
     try {
-      const { discordUserId } = req.params;
-      
-      const result = await db.delete(discordLinks).where(eq(discordLinks.discordUserId, discordUserId)).returning();
-      if (result.length === 0) {
-        return res.status(404).json({ success: false, message: 'Discord account is not linked' });
-      }
+      const { guildId } = req.params;
 
-      return res.json({ success: true, message: 'Discord account unlinked successfully' });
+      await db.update(guildConfigs)
+        .set({ linkedSiteUserId: null, linkedDiscordUserId: null, updatedAt: new Date() })
+        .where(eq(guildConfigs.guildId, guildId));
+
+      return res.json({ success: true, message: 'Discord server unlinked successfully' });
     } catch (error) {
       console.error('Error unlinking Discord account:', error);
       res.status(500).json({ success: false, message: 'Internal server error' });
@@ -4015,7 +4021,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/discord/guild-config/:guildId', async (req: any, res) => {
     try {
       const { guildId } = req.params;
-      
+
       // Look up server config in Postgres
       const [config] = await db.select().from(guildConfigs).where(eq(guildConfigs.guildId, guildId)).limit(1);
 

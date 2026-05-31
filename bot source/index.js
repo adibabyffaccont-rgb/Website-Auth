@@ -172,9 +172,9 @@ client.on(Events.InteractionCreate, async (interaction) => {
     if (action === 'disconnect_confirm') {
       await interaction.deferUpdate();
       try {
-        await api.unlinkAccount(interaction.user.id);
+        await api.unlinkAccount(interaction.guildId);
         return interaction.editReply({
-          embeds: [successEmbed('Disconnected', 'Your Discord account has been unlinked from the AdiCheats dashboard.')],
+          embeds: [successEmbed('Disconnected', 'The Discord server has been unlinked from the AdiCheats dashboard.')],
           components: [],
         });
       } catch (err) {
